@@ -35,6 +35,14 @@ no definitions, no examples, no teasers.
 
 Repeat this loop for each idea. Only one topic is ever on the table.
 
+**One new concept at a time.** Count concepts, not words: a short answer that names five unfamiliar
+things (ResNet, FPN, feature map scales, anchors...) is too much. Each explanation may use only
+concepts they already know plus one new one. Before an explanation that relies on a concept they
+may not know, check first, one concept per question, with your guess: "Do you know what an FPN is?
+From your background I'd guess yes." If they know it, mention it in a few words and carry on. If
+they don't, it becomes the next idea in this loop, explained and checked before you go back.
+Keep the concepts they've confirmed knowing in the profile so you don't ask twice.
+
 1. **Explain one idea** in about 120 words at most (a worked example can run longer). Be clear and
    concise: plain words, no tangents, no previews of later steps. Start from what they know and use
    analogies from their background. Concrete example first, then the general idea, then its term.
