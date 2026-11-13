@@ -44,11 +44,19 @@ Keep this computer on while you learn: Claude runs here, and the app only shows 
 
 1. **New session**, or **Learn more about this** on a topic, or **Start a session on this** on a
    suggestion. The session's page has an **Open in Claude** link, and it also appears by name in the app.
-2. Learn. Artifacts it makes are saved in the session's `artifacts/` folder and listed on its page.
-3. Say "let's wrap up" in the chat, or press **Wrap up**. The teacher writes the summary, tells you
-   its scores for you to correct, and updates the map, suggestions and profile. You can carry on
-   afterwards and wrap up again; it updates the same summary.
-4. **End** closes a session to free the machine. **Resume** brings it back with its history and the same link.
+2. Learn. The teacher builds the lesson's notes as you go: one card per concept, with its
+   definition, an example, what needed clearing up and what's in your code. They're the session's
+   page here, and published to claude.ai so **Notes in Claude** opens them in the app too. At the
+   end of each step of the plan it proposes scores for the map; say yes, no or give your own. Ask
+   for a map update any time. Artifacts it makes are saved in `artifacts/` and listed on the page.
+3. Say "let's wrap up" in the chat, or press **Wrap up**. The teacher tidies the notes, adds the key
+   ideas and open questions, confirms the scores with you, and adds suggestions to the map. You can
+   carry on afterwards and wrap up again.
+4. To start another session from inside a lesson, ask for it in the chat: "start a session on
+   Bayes' theorem". The teacher starts it with a line of context from this lesson, gives you its
+   link, and carries on where you were. Say it's unrelated and nothing carries over. Related sessions
+   link to each other on their pages.
+5. **End** closes a session to free the machine. **Resume** brings it back with its history and the same link.
 
 Scores go from 0 to 5: never encountered, heard of it, can explain the basics, can apply it, can
 reason through unfamiliar problems, could teach it. They come from what you showed in the
@@ -63,9 +71,9 @@ LEARNING_DIR/
   knowledge_map.json    topics, scores, suggestions; changed through bin/map.ts
   sessions/
     2026-11-03_monty_hall/
-      session.json      the session's ids, title and app link
-      notes.md          kept during the session
-      summary.md        written at wrap up
+      session.json      the session's ids, title, app and notes links, when it was wrapped up
+      notes.html        the lesson's notes, built during the session (older sessions: notes.md
+                        and summary.md, converted to notes.html when resumed)
       artifacts/
 ```
 
@@ -74,6 +82,9 @@ LEARNING_DIR/
 ```
 teacher-rules.md   how the agent teaches; added to every session's system prompt
 bin/map.ts         the command sessions use to change the map: validated, locked, atomic
+bin/session.ts     the command sessions use to start another session and save their notes link
+                   and wrap up, through the server
+templates/notes.html  what every session's notes start from
 server/            Node + Express
   sessions.ts      starts, resumes, wraps up and ends sessions; captures the app link
   data.ts          reads the learning folder and creates its starting files
@@ -83,7 +94,7 @@ shared/            map calculations and types used by the server, UI and bin/map
 web/src/           React UI (Vite)
   MapView.tsx      the knowledge map
   Panel.tsx        topic details, suggestions, sessions
-  Sessions.tsx     a session's summary, notes, artifacts and controls
+  Sessions.tsx     a session's notes, artifacts and controls
 ```
 
 The app link is read from the session's screen in tmux, so a Claude Code update could change how

@@ -24,6 +24,7 @@ export const api = {
   resume: (folder: string) => post<SessionSummary>(`${at(folder)}/resume`),
   wrapUp: (folder: string) => post(`${at(folder)}/wrapup`),
   end: (folder: string) => post(`${at(folder)}/end`),
+  notesUrl: (folder: string, version: string) => `${at(folder)}/notes?v=${encodeURIComponent(version)}`,
   artifactUrl: (folder: string, file: string) =>
     `${at(folder)}/artifacts/${file.split("/").map(encodeURIComponent).join("/")}`,
 };

@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { learningDir, sessionsDir } from "../shared/env.js";
 import { slug } from "../shared/map.js";
-import type { SessionDetail, SessionRecord, SessionSummary } from "../shared/types.js";
+import type { NewSessionOrigin, SessionDetail, SessionRecord, SessionSummary } from "../shared/types.js";
 import { config } from "./config.js";
 import {
   HttpError,
@@ -26,7 +26,7 @@ async function summarize(record: SessionRecord): Promise<SessionSummary> {
   return {
     ...record,
     running: await tmux.alive(record.tmuxSession),
-    wrappedUp: existsSync(path.join(sessionsDir, record.folder, "summary.md")),
+    wrappedUp: Boolean(record.wrappedUpAt) || existsSync(path.join(sessionsDir, record.folder, "summary.md")),
   };
 }
 
@@ -38,11 +38,20 @@ export async function listSessions() {
 
 export async function getSession(folder: string): Promise<SessionDetail> {
   const dir = sessionDir(folder);
+  const record = await readRecord(folder);
+  const related = record.origin && !record.origin.unrelated ? record.origin.from : null;
+  const all = await listSessions();
   return {
-    session: await summarize(await readRecord(folder)),
+    session: await summarize(record),
+    notesVersion: await fs
+      .stat(path.join(dir, "notes.html"))
+      .then((s) => String(s.mtimeMs))
+      .catch(() => null),
     summary: await readText(path.join(dir, "summary.md")),
     notes: await readText(path.join(dir, "notes.md")),
     artifacts: await listArtifacts(folder),
+    parent: all.find((s) => s.folder === related) ?? null,
+    children: all.filter((s) => s.origin?.from === folder && !s.origin.unrelated),
   };
 }
 
@@ -61,7 +70,9 @@ async function systemPrompt(folder: string) {
     .replaceAll("{{LEARNING_DIR}}", learningDir)
     .replaceAll("{{SESSION}}", folder)
     .replaceAll("{{SESSION_DIR}}", path.join(sessionsDir, folder))
-    .replaceAll("{{MAP}}", `node ${config.mapCli}`);
+    .replaceAll("{{MAP}}", `node ${config.mapCli}`)
+    .replaceAll("{{NOTES_TEMPLATE}}", config.notesTemplate)
+    .replaceAll("{{SESSION_CLI}}", `node ${config.sessionCli}`);
 }
 
 /** The Claude Code arguments shared by starting and resuming a session. */
@@ -71,8 +82,11 @@ async function claudeArgs(record: SessionRecord) {
       // What every lesson needs, so these never interrupt it with a prompt.
       allow: [
         `Bash(node ${config.mapCli}:*)`,
+        `Bash(node ${config.sessionCli}:*)`,
         `Edit(/${learningDir}/**)`,
         `Write(/${learningDir}/**)`,
+        // Publishing the notes to claude.ai, at the end of every step.
+        "Artifact",
       ],
     },
   };
@@ -111,10 +125,25 @@ async function captureUrl(record: SessionRecord) {
   console.error(`No Claude app link appeared for ${record.folder}`);
 }
 
-export async function startSession(topic: string) {
+/** The first message: the topic, and for a session started from another one, what carries over. */
+async function firstMessage(topic: string, origin: NewSessionOrigin | null) {
+  if (!topic) return "Hi, I'd like to learn something new.";
+  const ask = `I want to learn about: ${topic}`;
+  if (!origin) return ask;
+  if (origin.unrelated) {
+    return `${ask}\n\n(Started from another of my sessions, but unrelated to it: don't assume any connection.)`;
+  }
+  const from = await readRecord(origin.from);
+  const title = from.title.replace(/^Learn: /, "");
+  return `${ask}\n\nStarted from my session "${title}" (${from.folder}).${origin.context ? `\nNote from that session's teacher: ${origin.context}` : ""}`;
+}
+
+export async function startSession(topic: string, origin: NewSessionOrigin | null = null) {
+  if (origin) sessionDir(origin.from);
   const folder = newFolderName(topic);
   const dir = path.join(sessionsDir, folder);
   await fs.mkdir(path.join(dir, "artifacts"), { recursive: true });
+  await fs.copyFile(config.notesTemplate, path.join(dir, "notes.html"));
   const record: SessionRecord = {
     folder,
     claudeSessionId: randomUUID(),
@@ -123,10 +152,11 @@ export async function startSession(topic: string) {
     tmuxSession: `ait-${folder}`,
     url: null,
     problem: null,
+    origin: origin && { from: origin.from, unrelated: origin.unrelated },
   };
-  await writeRecord(path.join(dir, "session.json"), record);
   // The first message gets the teacher talking, so the conversation is waiting for you in the app.
-  const first = topic ? `I want to learn about: ${topic}` : "Hi, I'd like to learn something new.";
+  const first = await firstMessage(topic, origin);
+  await writeRecord(path.join(dir, "session.json"), record);
   await tmux.newSession(record.tmuxSession, dir, [
     ...(await claudeArgs(record)),
     "--session-id", record.claudeSessionId,
@@ -157,6 +187,18 @@ export async function wrapUpSession(folder: string) {
 export async function endSession(folder: string) {
   const record = await readRecord(folder);
   if (await tmux.alive(record.tmuxSession)) await tmux.kill(record.tmuxSession);
+}
+
+/** Saves the claude.ai link the teacher published the notes to. */
+export async function setNotesUrl(folder: string, url: string) {
+  if (!/^https:\/\/claude\.ai\/[\w\-/]+$/.test(url)) throw new HttpError(400, "That isn't a claude.ai artifact link");
+  await readRecord(folder);
+  await updateRecord(folder, { notesUrl: url });
+}
+
+export async function markWrappedUp(folder: string) {
+  await readRecord(folder);
+  await updateRecord(folder, { wrappedUpAt: new Date().toISOString() });
 }
 
 /** The file's real path if it's inside the session's artifacts/ folder (links can't lead out of it). */

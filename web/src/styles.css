@@ -134,6 +134,9 @@ main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1
 .reader > p { margin: 0 0 12px; }
 .reader section { margin-top: 22px; }
 .reader section > h2 { font-size: 15px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+.reader > .no-summary { margin-top: 22px; }
+.origin { margin: -6px 0 12px; }
+.reader > .origin { color: var(--muted); }
 .problem { padding: 8px 12px; background: var(--bad-soft); border-radius: var(--radius); }
 .artifacts { margin: 0; padding-left: 18px; }
 .artifacts a, .markdown a { color: var(--accent); }
@@ -168,3 +171,4 @@ main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1
 @media (prefers-reduced-motion: reduce) {
   .dot, .dot circle, .edges { transition: none; animation: none; }
 }
+.notes-frame { display: block; width: 100%; margin-top: 22px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }

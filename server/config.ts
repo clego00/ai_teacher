@@ -22,5 +22,8 @@ export const config = {
   /** Rules every teaching session gets in its system prompt. */
   teacherRulesFile: path.join(repoDir, "teacher-rules.md"),
   mapCli: path.join(repoDir, "bin", "map.ts"),
+  sessionCli: path.join(repoDir, "bin", "session.ts"),
+  /** Each session's notes.html starts as a copy of this. */
+  notesTemplate: path.join(repoDir, "templates", "notes.html"),
   dist: path.join(repoDir, "dist"),
 };

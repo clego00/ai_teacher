@@ -114,7 +114,7 @@ export default function App() {
 
       <main>
         {folder ? (
-          <SessionReader folder={folder} onClose={() => setFolder(null)} onError={showError} />
+          <SessionReader folder={folder} onClose={() => setFolder(null)} onOpen={setFolder} onError={showError} />
         ) : profile !== null ? (
           <div className="reader">
             <button className="link back" onClick={() => setProfile(null)}>

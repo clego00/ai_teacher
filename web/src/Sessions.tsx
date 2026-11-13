@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SessionDetail, SessionSummary } from "../../shared/types";
 import { api } from "./api";
 import Markdown from "./Markdown";
@@ -42,6 +42,11 @@ export function SessionActions({ session, onError }: { session: SessionSummary; 
       ) : (
         session.running && !session.problem && <span className="muted">Waiting for the Claude link…</span>
       )}
+      {session.notesUrl && (
+        <a className="button" href={session.notesUrl} target="_blank" rel="noreferrer">
+          Notes in Claude
+        </a>
+      )}
       {session.running ? (
         <>
           <button disabled={busy} onClick={act(() => api.wrapUp(session.folder))}>
@@ -60,14 +65,44 @@ export function SessionActions({ session, onError }: { session: SessionSummary; 
   );
 }
 
-/** One session's summary, notes and artifacts, in place of the map. */
+/**
+ * The session's notes.html, sandboxed like artifacts. The page reports its height so the frame
+ * grows with it, and a new version (the file's mtime) reloads it.
+ */
+function NotesFrame({ src }: { src: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(600);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.source === frame.current?.contentWindow && e.data?.type === "ait-notes-height") {
+        setHeight(Math.max(200, Math.ceil(Number(e.data.height) || 0)));
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  return (
+    <iframe
+      ref={frame}
+      className="notes-frame"
+      title="Lesson notes"
+      src={src}
+      sandbox="allow-scripts allow-popups"
+      style={{ height }}
+    />
+  );
+}
+
+/** One session's notes and artifacts, in place of the map. */
 export function SessionReader({
   folder,
   onClose,
+  onOpen,
   onError,
 }: {
   folder: string;
   onClose: () => void;
+  onOpen: (folder: string) => void;
   onError: (message: string) => void;
 }) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -88,7 +123,7 @@ export function SessionReader({
   }, [folder, onError]);
 
   if (!detail) return <div className="reader muted">Loading…</div>;
-  const { session, summary, notes, artifacts } = detail;
+  const { session, notesVersion, summary, notes, artifacts, parent, children } = detail;
   return (
     <div className="reader">
       <button className="link back" onClick={onClose}>
@@ -99,8 +134,24 @@ export function SessionReader({
         {new Date(session.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })} · {statusOf(session)}
         {session.running ? " · running" : " · stopped"}
       </p>
+      {parent && (
+        <p className="origin">
+          Started from:{" "}
+          <button className="link" onClick={() => onOpen(parent.folder)}>
+            {parent.title.replace(/^Learn: /, "")}
+          </button>
+        </p>
+      )}
       {session.problem && <p className="problem">{session.problem}</p>}
       <SessionActions session={session} onError={onError} />
+      {children.length > 0 && (
+        <section>
+          <h2>Sessions started from here</h2>
+          {children.map((s) => (
+            <SessionRow key={s.folder} session={s} onOpen={onOpen} />
+          ))}
+        </section>
+      )}
       {artifacts.length > 0 && (
         <section>
           <h2>Artifacts</h2>
@@ -115,18 +166,24 @@ export function SessionReader({
           </ul>
         </section>
       )}
-      {summary ? (
-        <section>
-          <Markdown text={summary} />
-        </section>
+      {notesVersion ? (
+        <NotesFrame src={api.notesUrl(folder, notesVersion)} />
       ) : (
-        <p className="muted">No summary yet. It's written when you wrap up.</p>
-      )}
-      {notes && (
-        <details className="notes" open={!summary}>
-          <summary>Notes from the session</summary>
-          <Markdown text={notes} />
-        </details>
+        <>
+          {summary ? (
+            <section>
+              <Markdown text={summary} />
+            </section>
+          ) : (
+            !notes && <p className="muted no-summary">No notes yet. They're written as the lesson goes.</p>
+          )}
+          {notes && (
+            <details className="notes" open={!summary}>
+              <summary>Notes from the session</summary>
+              <Markdown text={notes} />
+            </details>
+          )}
+        </>
       )}
     </div>
   );

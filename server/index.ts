@@ -1,16 +1,19 @@
 import express from "express";
 import { existsSync } from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { profileFile } from "../shared/env.js";
 import type { AppState } from "../shared/types.js";
 import { config } from "./config.js";
-import { ensureData, HttpError, readMap, readText } from "./data.js";
+import { ensureData, HttpError, readMap, readText, sessionDir } from "./data.js";
 import {
   artifactPath,
   endSession,
   getSession,
   listSessions,
+  markWrappedUp,
   resumeSession,
+  setNotesUrl,
   startSession,
   wrapUpSession,
 } from "./sessions.js";
@@ -48,8 +51,18 @@ app.get("/api/profile", h(async (_req, res) => {
 }));
 
 app.post("/api/sessions", h(async (req, res) => {
-  const topic = typeof req.body?.topic === "string" ? req.body.topic.trim() : "";
-  res.json(await startSession(topic));
+  const body = req.body ?? {};
+  const topic = typeof body.topic === "string" ? body.topic.trim() : "";
+  const from = typeof body.from === "string" ? body.from : null;
+  if (from && !topic) throw new HttpError(400, "A session started from another one needs a topic");
+  const origin = from
+    ? {
+        from,
+        unrelated: body.unrelated === true,
+        context: typeof body.context === "string" && body.unrelated !== true ? body.context.trim() : undefined,
+      }
+    : null;
+  res.json(await startSession(topic, origin));
 }));
 
 app.get("/api/sessions/:folder", h(async (req, res) => {
@@ -68,6 +81,32 @@ app.post("/api/sessions/:folder/wrapup", h(async (req, res) => {
 app.post("/api/sessions/:folder/end", h(async (req, res) => {
   await endSession(param(req, "folder"));
   res.json({ ok: true });
+}));
+
+app.post("/api/sessions/:folder/notes-link", h(async (req, res) => {
+  await setNotesUrl(param(req, "folder"), String(req.body?.url ?? ""));
+  res.json({ ok: true });
+}));
+
+app.post("/api/sessions/:folder/wrapped-up", h(async (req, res) => {
+  await markWrappedUp(param(req, "folder"));
+  res.json({ ok: true });
+}));
+
+// The skeleton claude.ai wraps a published page in, so the notes look the same here.
+const PAGE_HEAD =
+  '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+  '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>\n';
+
+// The notes are a page a session wrote, so they open sandboxed like artifacts (below).
+app.get("/api/sessions/:folder/notes", h(async (req, res) => {
+  const html = await fs.readFile(path.join(sessionDir(param(req, "folder")), "notes.html"), "utf8").catch(() => {
+    throw new HttpError(404, "No notes yet");
+  });
+  res.setHeader("Content-Security-Policy", "sandbox allow-scripts allow-popups");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(PAGE_HEAD + html);
 }));
 
 // Artifacts are pages a session wrote, so they open sandboxed, unable to call this server as you.

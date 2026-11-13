@@ -1,0 +1,169 @@
+<title>Lesson notes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--
+  Lesson notes, written for the learner to come back to. The teacher copies this file into the
+  session folder as notes.html and fills it in during the lesson. It's published as-is to claude.ai,
+  so keep everything inline: no files beside it, scripts only from cdnjs.cloudflare.com.
+
+  - <title> and <h1>: the topic, a short name ("MONAI RetinaNet"). Keep it the same once set.
+  - .goal: what they set out to learn, in one line.
+  - .plan: one <li> per step. Add class="done" when a step is finished, and link the step's
+    concepts inside it: <a href="#anchor-box">Anchor box</a>.
+  - One <article class="concept"> per concept, in the order they were taught (pattern below).
+  - .in-short and .open-questions are added at wrap up.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+  /* Layout: one reading column; a plan checklist, then a stack of self-contained concept cards. */
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --fg: #1c2330;
+    --muted: #5d6676;
+    --rule: #dde1e8;
+    --accent: #2457c5;
+    --accent-soft: #e8eefb;
+    --done: #2e7d4f;
+    --code-bg: #eef1f5;
+    --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14181f; --surface: #1c222b; --fg: #dfe4ec; --muted: #98a2b3; --rule: #2d3542;
+      --accent: #7aa5ff; --accent-soft: #1f2b44; --done: #6cc28f; --code-bg: #252c37;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181f; --surface: #1c222b; --fg: #dfe4ec; --muted: #98a2b3; --rule: #2d3542;
+    --accent: #7aa5ff; --accent-soft: #1f2b44; --done: #6cc28f; --code-bg: #252c37;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font-body); margin: 0;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .page { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+  h1 { font-size: 30px; font-weight: 600; line-height: 1.2; }
+  h2 { font-size: 21px; font-weight: 600; line-height: 1.3; }
+  .label {
+    font-family: var(--font-body); font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 4px;
+  }
+  p, ul, ol { margin: 0; }
+  ul { padding-left: 20px; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, pre { font-family: var(--font-mono); font-size: 0.88em; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: 10px 12px; border-radius: 6px; overflow-x: auto; margin: 0; }
+  pre code { background: none; padding: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .goal { color: var(--muted); font-size: 16px; }
+
+  /* Plan: a checklist; finished steps get a tick. */
+  nav:not(:has(.plan li)) { display: none; }
+  .plan { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; counter-reset: step; }
+  .plan li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 2px 8px; }
+  .plan li::before {
+    content: counter(step); grid-row: span 2; width: 22px; height: 22px; margin-top: 1px;
+    border: 1.5px solid var(--rule); border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .plan li.done::before { content: "✓"; border-color: var(--done); background: var(--done); color: var(--surface); }
+  .plan li > span:first-child { min-width: 0; }
+  .plan li a { font-size: 13.5px; margin-right: 10px; }
+
+  .in-short { background: var(--accent-soft); border-radius: 8px; padding: 14px 16px; }
+  .in-short ul { display: flex; flex-direction: column; gap: 4px; }
+
+  /* Concept cards: each one stands on its own. */
+  .concepts { display: flex; flex-direction: column; gap: 18px; }
+  .concept {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0;
+    scroll-margin-top: 16px;
+  }
+  .concept .definition { font-size: 16px; }
+  .concept section { min-width: 0; }
+  .concept section > :not(.label) + * { margin-top: 6px; }
+  .concept figure { margin: 0; overflow-x: auto; }
+  .concept figure svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .concept figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .concept .cleared li + li, .concept .in-code li + li { margin-top: 4px; }
+  .concept .in-code { border-top: 1px dashed var(--rule); padding-top: 12px; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--rule); }
+  .empty { color: var(--muted); border: 1px dashed var(--rule); border-radius: 10px; padding: 18px 20px; }
+  .concepts:has(.concept) .empty { display: none; }
+
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>Lesson notes</h1>
+    <p class="goal">The goal and plan appear here once they're agreed.</p>
+  </header>
+
+  <nav aria-label="Plan">
+    <p class="label">Plan</p>
+    <ol class="plan">
+      <!-- <li class="done"><span>Anchors, heads and NMS</span> <span><a href="#anchor-box">Anchor box</a> <a href="#nms">NMS</a></span></li> -->
+    </ol>
+  </nav>
+
+  <!-- At wrap up: <aside class="in-short"><p class="label">In short</p><ul><li>…</li></ul></aside> -->
+
+  <main class="concepts">
+    <p class="empty">Each concept gets a card here once it's been explained and checked.</p>
+
+    <!-- Pattern for one concept. Leave out the sections it doesn't need.
+    <article class="concept" id="anchor-box">
+      <h2>Anchor box</h2>
+      <p class="definition">A fixed reference box placed at every feature-map position. The model
+        predicts how to shift and resize it, rather than drawing a box from scratch.</p>
+      <section>
+        <p class="label">Example</p>
+        <p>3 anchor shapes on a 48×48×40 feature map give 48×48×40×3 = 276,480 anchors.</p>
+      </section>
+      <figure>
+        inline <svg width="…" viewBox="…"> at its natural size (it shrinks on narrow screens), or a
+        small demo with an inline <script>; colours from the CSS variables, e.g. stroke="var(--accent)"
+        <figcaption>What to look at.</figcaption>
+      </figure>
+      <section class="cleared">
+        <p class="label">Cleared up</p>
+        <ul><li>The anchor isn't the region the model looks at: the receptive field is larger.</li></ul>
+      </section>
+      <section class="in-code">
+        <p class="label">In your code</p>
+        <ul><li><code>base_anchor_shapes</code> is [[6,8,4],[8,6,5],[10,10,6]] at 1 mm.</li></ul>
+      </section>
+    </article>
+    -->
+  </main>
+
+  <!-- At wrap up: <section class="open-questions"><p class="label">Open questions</p><ul><li>…</li></ul></section> -->
+</div>
+
+<script>
+  // Lets the AI teacher web app size its frame to the page. Does nothing elsewhere.
+  if (window.parent !== window) {
+    const report = () => window.parent.postMessage({ type: "ait-notes-height", height: document.documentElement.scrollHeight }, "*");
+    new ResizeObserver(report).observe(document.body);
+    addEventListener("load", report);
+  }
+</script>
