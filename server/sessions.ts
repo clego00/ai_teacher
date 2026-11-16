@@ -71,6 +71,7 @@ async function systemPrompt(folder: string) {
     .replaceAll("{{SESSION}}", folder)
     .replaceAll("{{SESSION_DIR}}", path.join(sessionsDir, folder))
     .replaceAll("{{MAP}}", `node ${config.mapCli}`)
+    .replaceAll("{{EXPLORE}}", `node ${config.exploreCli}`)
     .replaceAll("{{NOTES_TEMPLATE}}", config.notesTemplate)
     .replaceAll("{{SESSION_CLI}}", `node ${config.sessionCli}`);
 }
@@ -83,6 +84,7 @@ async function claudeArgs(record: SessionRecord) {
       allow: [
         `Bash(node ${config.mapCli}:*)`,
         `Bash(node ${config.sessionCli}:*)`,
+        `Bash(node ${config.exploreCli}:*)`,
         `Edit(/${learningDir}/**)`,
         `Write(/${learningDir}/**)`,
         // Publishing the notes to claude.ai, at the end of every step.
@@ -125,11 +127,14 @@ async function captureUrl(record: SessionRecord) {
   console.error(`No Claude app link appeared for ${record.folder}`);
 }
 
-/** The first message: the topic, and for a session started from another one, what carries over. */
-async function firstMessage(topic: string, origin: NewSessionOrigin | null) {
+/**
+ * The first message: the topic, and for a session started from another one, what carries over.
+ * `note` is the learner's own, from their explore list.
+ */
+async function firstMessage(topic: string, origin: NewSessionOrigin | null, note = "") {
   if (!topic) return "Hi, I'd like to learn something new.";
   const ask = `I want to learn about: ${topic}`;
-  if (!origin) return ask;
+  if (!origin) return note ? `${ask}\n\nMy note on why: ${note}` : ask;
   if (origin.unrelated) {
     return `${ask}\n\n(Started from another of my sessions, but unrelated to it: don't assume any connection.)`;
   }
@@ -138,7 +143,7 @@ async function firstMessage(topic: string, origin: NewSessionOrigin | null) {
   return `${ask}\n\nStarted from my session "${title}" (${from.folder}).${origin.context ? `\nNote from that session's teacher: ${origin.context}` : ""}`;
 }
 
-export async function startSession(topic: string, origin: NewSessionOrigin | null = null) {
+export async function startSession(topic: string, origin: NewSessionOrigin | null = null, note = "") {
   if (origin) sessionDir(origin.from);
   const folder = newFolderName(topic);
   const dir = path.join(sessionsDir, folder);
@@ -155,7 +160,7 @@ export async function startSession(topic: string, origin: NewSessionOrigin | nul
     origin: origin && { from: origin.from, unrelated: origin.unrelated },
   };
   // The first message gets the teacher talking, so the conversation is waiting for you in the app.
-  const first = await firstMessage(topic, origin);
+  const first = await firstMessage(topic, origin, note);
   await writeRecord(path.join(dir, "session.json"), record);
   await tmux.newSession(record.tmuxSession, dir, [
     ...(await claudeArgs(record)),

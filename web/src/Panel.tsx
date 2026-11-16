@@ -1,27 +1,35 @@
 import { useMemo } from "react";
 import { childrenOf, LEVELS, type KnowledgeMap, type Suggestion } from "../../shared/map";
+import type { ExploreList } from "../../shared/explore";
 import type { SessionSummary } from "../../shared/types";
+import Explore from "./Explore";
 import { SessionRow } from "./Sessions";
 
 /** What's beside the map: details of the topic or suggestion in view, and its sessions. */
 export default function Panel({
   map,
   sessions,
+  explore,
   focus,
   suggestion,
   onFocus,
   onSuggestion,
   onOpenSession,
   onStart,
+  onStarted,
+  onError,
 }: {
   map: KnowledgeMap;
   sessions: SessionSummary[];
+  explore: ExploreList;
   focus: string | null;
   suggestion: Suggestion | null;
   onFocus: (id: string | null) => void;
   onSuggestion: (id: string) => void;
   onOpenSession: (folder: string) => void;
   onStart: (topic: string) => void;
+  onStarted: (folder: string) => void;
+  onError: (message: string) => void;
 }) {
   const children = useMemo(() => childrenOf(map), [map]);
   const topic = map.topics.find((t) => t.id === focus);
@@ -123,6 +131,14 @@ export default function Panel({
           ))}
         </section>
       )}
+
+      <Explore
+        explore={explore}
+        sessions={sessions}
+        onOpenSession={onOpenSession}
+        onStarted={onStarted}
+        onError={onError}
+      />
 
       <section>
         <h3>{topic ? "Sessions" : "All sessions"}</h3>

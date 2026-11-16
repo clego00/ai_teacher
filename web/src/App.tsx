@@ -134,12 +134,15 @@ export default function App() {
         <Panel
           map={state.map}
           sessions={state.sessions}
+          explore={state.explore}
           focus={focus}
           suggestion={suggestion}
           onFocus={(id) => { setFolder(null); setProfile(null); goTo(id); }}
           onSuggestion={(id) => { setFolder(null); setProfile(null); setSuggestionId(id); }}
           onOpenSession={(f) => { setProfile(null); setSuggestionId(null); setFolder(f); }}
           onStart={start}
+          onStarted={(f) => { setProfile(null); setSuggestionId(null); setFolder(f); }}
+          onError={showError}
         />
       </main>
 

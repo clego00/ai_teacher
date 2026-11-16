@@ -172,3 +172,16 @@ main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1
   .dot, .dot circle, .edges { transition: none; animation: none; }
 }
 .notes-frame { display: block; width: 100%; margin-top: 22px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }
+.explore-add { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.explore-add input {
+  width: 100%; padding: 6px 9px; font: inherit; color: var(--ink);
+  background: var(--panel-2); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.explore-add button { align-self: flex-start; }
+.explore-item { padding: 8px 0; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 3px; }
+.explore-subject { color: var(--ink-strong); font-weight: 600; }
+.explore-note, .explore-from { color: var(--muted); font-size: 13px; }
+.explore-item .actions { margin-top: 5px; }
+.explore-started { margin-top: 8px; }
+.explore-started summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.explore-started-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 13px; }

@@ -23,6 +23,7 @@ export const config = {
   teacherRulesFile: path.join(repoDir, "teacher-rules.md"),
   mapCli: path.join(repoDir, "bin", "map.ts"),
   sessionCli: path.join(repoDir, "bin", "session.ts"),
+  exploreCli: path.join(repoDir, "bin", "explore.ts"),
   /** Each session's notes.html starts as a copy of this. */
   notesTemplate: path.join(repoDir, "templates", "notes.html"),
   dist: path.join(repoDir, "dist"),

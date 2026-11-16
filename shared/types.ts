@@ -1,3 +1,4 @@
+import type { ExploreList } from "./explore.js";
 import type { KnowledgeMap } from "./map.js";
 
 /** What's saved in each session's session.json. */
@@ -54,4 +55,4 @@ export type SessionDetail = {
   children: SessionSummary[];
 };
 
-export type AppState = { map: KnowledgeMap; sessions: SessionSummary[] };
+export type AppState = { map: KnowledgeMap; sessions: SessionSummary[]; explore: ExploreList };

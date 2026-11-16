@@ -56,7 +56,10 @@ Keep this computer on while you learn: Claude runs here, and the app only shows 
    Bayes' theorem". The teacher starts it with a line of context from this lesson, gives you its
    link, and carries on where you were. Say it's unrelated and nothing carries over. Related sessions
    link to each other on their pages.
-5. **End** closes a session to free the machine. **Resume** brings it back with its history and the same link.
+5. To keep a subject for later, say "add Bayes to my explore list" in a lesson, or type it under
+   **To explore** in the side panel. Each one shows where it came up; **Start a session** starts a
+   lesson on it with that context, and it moves to **Started**.
+6. **End** closes a session to free the machine. **Resume** brings it back with its history and the same link.
 
 Scores go from 0 to 5: never encountered, heard of it, can explain the basics, can apply it, can
 reason through unfamiliar problems, could teach it. They come from what you showed in the
@@ -69,6 +72,7 @@ score plus half of what's inside it, so parents grow with their topics.
 LEARNING_DIR/
   profile.md            what the teacher knows about you; edit it freely
   knowledge_map.json    topics, scores, suggestions; changed through bin/map.ts
+  explore.json          subjects to explore later; changed through bin/explore.ts and the web app
   sessions/
     2026-11-03_monty_hall/
       session.json      the session's ids, title, app and notes links, when it was wrapped up
@@ -84,16 +88,20 @@ teacher-rules.md   how the agent teaches; added to every session's system prompt
 bin/map.ts         the command sessions use to change the map: validated, locked, atomic
 bin/session.ts     the command sessions use to start another session and save their notes link
                    and wrap up, through the server
+bin/explore.ts     the command sessions use to add to the explore list
+bin/launch.ts      starts a session's claude command from a file, since tmux refuses long commands
 templates/notes.html  what every session's notes start from
 server/            Node + Express
+  explore.ts       the explore list: add, remove, start a session from a subject
   sessions.ts      starts, resumes, wraps up and ends sessions; captures the app link
   data.ts          reads the learning folder and creates its starting files
   tmux.ts          runs sessions in tmux, reads their screen and types into them
   index.ts         HTTP API
-shared/            map calculations and types used by the server, UI and bin/map.ts
+shared/            map calculations, types and locked JSON writes, used by the server, UI and bin/
 web/src/           React UI (Vite)
   MapView.tsx      the knowledge map
   Panel.tsx        topic details, suggestions, sessions
+  Explore.tsx      the explore list
   Sessions.tsx     a session's notes, artifacts and controls
 ```
 

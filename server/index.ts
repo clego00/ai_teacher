@@ -5,6 +5,7 @@ import path from "node:path";
 import { profileFile } from "../shared/env.js";
 import type { AppState } from "../shared/types.js";
 import { config } from "./config.js";
+import { addSubject, readExplore, removeSubject, startSubject } from "./explore.js";
 import { ensureData, HttpError, readMap, readText, sessionDir } from "./data.js";
 import {
   artifactPath,
@@ -42,7 +43,7 @@ const h =
 const param = (req: express.Request, name: string) => String(req.params[name]);
 
 app.get("/api/state", h(async (_req, res) => {
-  const state: AppState = { map: await readMap(), sessions: await listSessions() };
+  const state: AppState = { map: await readMap(), sessions: await listSessions(), explore: readExplore() };
   res.json(state);
 }));
 
@@ -63,6 +64,20 @@ app.post("/api/sessions", h(async (req, res) => {
       }
     : null;
   res.json(await startSession(topic, origin));
+}));
+
+app.post("/api/explore", h(async (req, res) => {
+  const body = req.body ?? {};
+  res.json(addSubject(String(body.subject ?? ""), String(body.note ?? "")));
+}));
+
+app.post("/api/explore/:id/remove", h(async (req, res) => {
+  removeSubject(param(req, "id"));
+  res.json({ ok: true });
+}));
+
+app.post("/api/explore/:id/start", h(async (req, res) => {
+  res.json(await startSubject(param(req, "id")));
 }));
 
 app.get("/api/sessions/:folder", h(async (req, res) => {

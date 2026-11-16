@@ -22,5 +22,6 @@ export function expandHome(p: string) {
 
 export const learningDir = path.resolve(expandHome(process.env.LEARNING_DIR || "~/learning"));
 export const mapFile = path.join(learningDir, "knowledge_map.json");
+export const exploreFile = path.join(learningDir, "explore.json");
 export const profileFile = path.join(learningDir, "profile.md");
 export const sessionsDir = path.join(learningDir, "sessions");

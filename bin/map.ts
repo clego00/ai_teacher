@@ -13,6 +13,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { mapFile, sessionsDir } from "../shared/env.ts";
 import { childrenOf, seedMap, slug, type KnowledgeMap, type Topic } from "../shared/map.ts";
+import { changeJson, readJson, writeJson } from "../shared/store.ts";
 
 // A thrown error, not an exit, so a rejected change still releases the lock on its way out.
 function fail(message: string): never {
@@ -24,44 +25,8 @@ process.on("uncaughtException", (e) => {
   process.exit(1);
 });
 
-function load(): KnowledgeMap {
-  if (!fs.existsSync(mapFile)) return seedMap();
-  return JSON.parse(fs.readFileSync(mapFile, "utf8"));
-}
-
-function writeJson(file: string, data: unknown) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n");
-  fs.renameSync(tmp, file);
-}
-
-const STALE_LOCK_MS = 30_000;
-
-/** Runs a change to the map while holding the lock (a directory, since mkdir is atomic). */
-function change(fn: (map: KnowledgeMap) => void) {
-  fs.mkdirSync(path.dirname(mapFile), { recursive: true });
-  const lock = `${mapFile}.lock`;
-  const deadline = Date.now() + 10_000;
-  for (;;) {
-    try {
-      fs.mkdirSync(lock);
-      break;
-    } catch {
-      const stat = fs.statSync(lock, { throwIfNoEntry: false });
-      if (stat && Date.now() - stat.mtimeMs > STALE_LOCK_MS) fs.rmSync(lock, { recursive: true, force: true });
-      if (Date.now() > deadline) fail("the knowledge map is locked by another session; try again");
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
-    }
-  }
-  try {
-    const map = load();
-    fn(map);
-    writeJson(mapFile, map);
-  } finally {
-    fs.rmSync(lock, { recursive: true, force: true });
-  }
-}
+const load = () => readJson(mapFile, seedMap);
+const change = (fn: (map: KnowledgeMap) => void) => changeJson(mapFile, seedMap, fn, "the knowledge map");
 
 function find(map: KnowledgeMap, id: string): Topic {
   return map.topics.find((t) => t.id === id) ?? fail(`no topic with id "${id}" (see: map.ts show)`);
